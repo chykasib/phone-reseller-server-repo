@@ -18,7 +18,7 @@ async function run() {
     try {
 
         const phoneCategoriesCollection = client.db('PhoneReseller').collection('categories');
-
+        const usersCollection = client.db('PhoneReseller').collection('users');
 
         app.get('/categories', async (req, res) => {
             const query = {};
@@ -33,6 +33,12 @@ async function run() {
             const products = await phoneCategoriesCollection.findOne(query)
             res.send(products)
 
+        })
+
+        app.post('/users', async (req, res) => {
+            const user = req.body;
+            const result = await usersCollection.insertOne(user);
+            res.send(result)
         })
 
 
