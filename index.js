@@ -35,6 +35,7 @@ async function run() {
         const usersCollection = client.db('PhoneReseller').collection('users');
         const ordersCollection = client.db('PhoneReseller').collection('orders');
         const paymentCollection = client.db('PhoneReseller').collection('payment');
+        const addProductCollection = client.db('PhoneReseller').collection('addProduct');
 
         app.get('/categories', async (req, res) => {
             const query = {};
@@ -42,6 +43,25 @@ async function run() {
             res.send(categories);
         })
 
+
+        // app.get('/categories', async (req, res) => {
+        //     const query = {}
+        //     const cursor = appointmentOPtionsCollection.find(query);
+        //     const options = await cursor.toArray()
+        //     //get the booking of the provided data
+        //     const name = req.query.name;
+        //     const bookingQuery = { productName: name };
+        //     const alreadyBooked = await bookingsCollection.find(bookingQuery).toArray();
+
+        //     // code carefully :D
+        //     options.map(option => {
+        //         const optionBooked = alreadyBooked.filter(book => book.treatment === option.name)
+        //         const bookedSlots = optionBooked.map(book => book.slot);
+        //         const remainingSlots = option.slots.filter(slot => !bookedSlots.includes(slot))
+        //         option.slots = remainingSlots;
+        //     })
+        //     res.send(options)
+        // })
 
         app.get('/categories/:id', async (req, res) => {
             const id = req.params.id;
@@ -79,6 +99,19 @@ async function run() {
             const order = { _id: ObjectId(id) };
             const result = await ordersCollection.findOne(order);
             res.send(result)
+        })
+
+        app.post('/addProduct', async (req, res) => {
+            const query = req.body;
+            const result = await addProductCollection.insertOne(query);
+            res.send(result)
+        })
+
+        app.get('/addProduct', async (req, res) => {
+            const email = req.query.email;
+            const query = { email: email };
+            result = await addProductCollection.find(query).toArray();
+            res.send(result);
         })
 
         app.post('/create-payment-intent', async (req, res) => {
