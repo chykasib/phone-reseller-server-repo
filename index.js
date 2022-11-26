@@ -8,7 +8,7 @@ require('dotenv').config()
 
 app.use(cors())
 app.use(express.json())
-
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 function verifyJWT(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
@@ -34,6 +34,7 @@ async function run() {
         const phoneCategoriesCollection = client.db('PhoneReseller').collection('categories');
         const usersCollection = client.db('PhoneReseller').collection('users');
         const ordersCollection = client.db('PhoneReseller').collection('orders');
+        const paymentCollection = client.db('PhoneReseller').collection('payment');
 
         app.get('/categories', async (req, res) => {
             const query = {};
@@ -49,26 +50,6 @@ async function run() {
             res.send(products)
 
         })
-
-
-        // app.get('/categories', async (req, res) => {
-        //     const query = {}
-        //     const options = await phoneCategoriesCollection.find(query).toArray()
-
-        //     //get the booking of the provided data
-        //     const name = req.query.name;
-        //     const orderQuery = { productName: name };
-        //     const alreadyBooked = await phoneCategoriesCollection.find(orderQuery).toArray();
-
-        //     // code carefully :D
-        //     options.map(option => {
-        //         const optionOrder = alreadyBooked.filter(order => order.name === option.name)
-        //         const bookedSlots = optionOrder.map(book => book.name);
-        //         const remainingSlots = option.products.filter(slot => !bookedSlots.includes(slot))
-        //         option.slots = remainingSlots;
-        //     })
-        //     res.send(options)
-        // })
 
         app.post('/users', async (req, res) => {
             const user = req.body;
@@ -96,8 +77,40 @@ async function run() {
         app.get('/orders/:id', async (req, res) => {
             const id = req.params.id;
             const order = { _id: ObjectId(id) };
-            const result = await ordersCollection.findOne(booking);
+            const result = await ordersCollection.findOne(order);
             res.send(result)
+        })
+
+        app.post('/create-payment-intent', async (req, res) => {
+            const order = req.body;
+            const price = order.resalePrice;
+            const amount = price * 100;
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: "bdt",
+                "payment_method_types": [
+                    "card"
+                ],
+            });
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
+        })
+
+        app.post('/payment', async (req, res) => {
+            const payment = req.body;
+            const result = await paymentCollection.insertOne(payment);
+
+            const id = payment.orderId;
+            const filter = { _id: ObjectId(id) }
+            const updateDoc = {
+                $set: {
+                    paid: true,
+                    transactionId: payment.transactionId
+                }
+            }
+            const updateResult = await ordersCollection.updateOne(filter, updateDoc);
+            res.send(result);
         })
 
 
