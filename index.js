@@ -37,6 +37,19 @@ async function run() {
         const paymentCollection = client.db('PhoneReseller').collection('payment');
         const addProductCollection = client.db('PhoneReseller').collection('addProduct');
 
+
+        // const verifyAdmin = async (req, res, next) => {
+        //     const decodedEmail = req.decoded.email;
+        //     const query = { email: decodedEmail };
+        //     const user = await usersCollection.findOne(query);
+        //     if (user?.role !== 'admin') {
+        //         return res.status(403).send({ message: 'forbidden access' })
+        //     }
+        //     next()
+        // }
+
+
+
         app.get('/categories', async (req, res) => {
             const query = {};
             const categories = await phoneCategoriesCollection.find(query).toArray()
@@ -77,6 +90,76 @@ async function run() {
             res.send(result)
         })
 
+        app.get('/users', async (req, res) => {
+            const query = {};
+            const users = await usersCollection.find(query).toArray()
+            res.send(users)
+        })
+        // Admin part 
+        app.put('/users/admin/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    role: 'admin'
+                }
+            }
+            const result = await usersCollection.updateOne(filter, updateDoc, options);
+            res.send(result);
+        })
+
+        app.get('/users/admin/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email };
+            const user = await usersCollection.findOne(query);
+            res.send({ isAdmin: user?.role === 'admin' })
+        })
+
+
+        app.delete('/users/admin/:id', async (req, res) => {
+            const id = req.params.id;
+            const user = { _id: ObjectId(id) }
+            const result = await usersCollection.deleteOne(user);
+            res.send(result);
+        })
+
+        // seller part
+        app.put('/users/seller/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    role: 'seller'
+                }
+            }
+            const result = await usersCollection.updateOne(filter, updateDoc, options);
+            res.send(result);
+        })
+
+        app.get('/users/seller/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email };
+            const user = await usersCollection.findOne(query);
+            res.send({ isSeller: user?.role === 'seller' })
+        })
+        app.delete('/users/seller/:id', async (req, res) => {
+            const id = req.params.id;
+            const user = { _id: ObjectId(id) }
+            const result = await usersCollection.deleteOne(user);
+            res.send(result);
+        })
+
+        // buyers
+        app.delete('/users/buyer/:id', async (req, res) => {
+            const id = req.params.id;
+            const user = { _id: ObjectId(id) }
+            const result = await usersCollection.deleteOne(user);
+            res.send(result);
+        })
+
+
         app.post('/orders', async (req, res) => {
             const order = req.body;
             const result = await ordersCollection.insertOne(order);
@@ -109,6 +192,7 @@ async function run() {
 
         app.get('/addProduct', async (req, res) => {
             const email = req.query.email;
+            console.log(email)
             const query = { email: email };
             result = await addProductCollection.find(query).toArray();
             res.send(result);
@@ -133,7 +217,6 @@ async function run() {
         app.post('/payment', async (req, res) => {
             const payment = req.body;
             const result = await paymentCollection.insertOne(payment);
-
             const id = payment.orderId;
             const filter = { _id: ObjectId(id) }
             const updateDoc = {
@@ -143,7 +226,7 @@ async function run() {
                 }
             }
             const updateResult = await ordersCollection.updateOne(filter, updateDoc);
-            res.send(result);
+            res.send(updateResult);
         })
 
 
